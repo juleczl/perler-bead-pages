@@ -995,6 +995,13 @@ function aiSimplify(imageData){
   return new ImageData(out,w,h);
 }
 
+// 统一处理管线：依据 aiOptimized / bgRemoved 两个开关重算 processedData（两者可独立开关、互不覆盖）
+function applyPipeline(){
+  const base=S.aiOptimized?aiSimplify(S.imageData):S.imageData;
+  S.processedData=S.bgRemoved?removeBackground(base):base;
+  processImage();
+}
+
 // =============================================
 // AI BACKGROUND REMOVAL
 // =============================================
@@ -1582,30 +1589,20 @@ function bind(){
     if(!S.imageData){toast('请先上传图片');return;}
     setProcessing(true);
     setTimeout(()=>{
-      if(S.aiOptimized){
-        // 已简化 → 恢复原始图片
-        S.processedData=null;S.aiOptimized=false;
-        $('#btnOptimize').classList.remove('active');
-        processImage();
-        toast('已恢复原始图片');
-      }else{
-        // 未简化 → 重新 AI 简化
-        S.processedData=aiSimplify(S.imageData);S.aiOptimized=true;
-        $('#btnOptimize').classList.add('active');
-        processImage();
-        toast('✨ AI 已自动简化图片');
-      }
+      S.aiOptimized=!S.aiOptimized;
+      applyPipeline();
+      $('#btnOptimize').classList.toggle('active',S.aiOptimized);
+      toast(S.aiOptimized?'✨ AI 已简化图片':'已恢复原始图片');
     },100);
   });
   $('#btnBgRemove').addEventListener('click',()=>{
     if(!S.imageData){toast('请先上传图片');return;}
     setProcessing(true);
     setTimeout(()=>{
-      S.processedData=removeBackground(S.processedData||S.imageData);
-      S.bgRemoved=true;
-      $('#btnBgRemove').classList.add('active');
-      processImage();
-      toast('🧹 背景已清除为纯白');
+      S.bgRemoved=!S.bgRemoved;
+      applyPipeline();
+      $('#btnBgRemove').classList.toggle('active',S.bgRemoved);
+      toast(S.bgRemoved?'🧹 背景已清除为纯白':'已还原背景');
     },100);
   });
   $('#btnReset').addEventListener('click',()=>{
