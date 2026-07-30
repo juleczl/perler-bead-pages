@@ -943,6 +943,9 @@ function loadImage(file){
       lctx.fillStyle='#ffffff';lctx.fillRect(0,0,c.width,c.height);
       lctx.drawImage(img,0,0);
       S.imageData=lctx.getImageData(0,0,img.width,img.height);
+      // 像素级兜底：透明像素(alpha 近 0)强制置白，确保透明 PNG 背景生成白珠（不依赖 canvas 合成）
+      const id2=S.imageData.data;
+      for(let i=0;i<id2.length;i+=4){ if(id2[i+3]<16){id2[i]=255;id2[i+1]=255;id2[i+2]=255;id2[i+3]=255;} }
       // 图片插入后 AI 自动简化（去噪/对比度/饱和度），再经采样→匹配生成拼豆图
       S.processedData=aiSimplify(S.imageData);S.undoStack=[];S.undoIdx=-1;S.aiOptimized=true;
       if(S.ratioLocked){
