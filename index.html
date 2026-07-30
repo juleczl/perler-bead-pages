@@ -443,15 +443,8 @@ input[type="range"]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;b
   animation:logoPulse 3s ease-in-out infinite;
 }
 @keyframes logoPulse{0%,100%{box-shadow:0 3px 12px rgba(124,92,255,.32)}50%{box-shadow:0 3px 20px rgba(124,92,255,.55),0 0 24px rgba(124,92,255,.15)}}
-.h-logo::before{
-  content:'';width:18px;height:18px;
-  background:
-    radial-gradient(circle at 25% 25%,#fff 20%,transparent 22%),
-    radial-gradient(circle at 75% 25%,#ffd54f 20%,transparent 22%),
-    radial-gradient(circle at 25% 75%,#ff5ca8 20%,transparent 22%),
-    radial-gradient(circle at 75% 75%,#5cffe0 20%,transparent 22%);
-  background-size:50% 50%;background-position:0 0,100% 0,0 100%,100% 100%;
-}
+.h-logo circle{transform-origin:18px 18px;transition:transform .3s ease}
+.h-logo:hover circle{transform:scale(1.1)}
 .h-title{font-size:18px;font-weight:900;letter-spacing:-.03em;display:flex;flex-direction:column;line-height:1.05;background:linear-gradient(135deg,var(--accent),var(--accent2),var(--accent3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .h-title small{font-size:9px;font-weight:600;color:var(--text3);letter-spacing:.18em;text-transform:uppercase;-webkit-text-fill-color:var(--text3)}
 
@@ -623,7 +616,17 @@ body.preview-mode .canvas-stage{padding-top:64px;overflow:auto;-webkit-overflow-
 <!-- HEADER -->
 <header class="header" id="header">
   <div class="h-l">
-    <div class="h-logo"></div>
+    <svg class="h-logo" viewBox="0 0 36 36" width="38" height="38" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="8" cy="8" r="4.5" fill="#ff5ca8"/>
+      <circle cx="18" cy="8" r="4.5" fill="#7c5cff"/>
+      <circle cx="28" cy="8" r="4.5" fill="#22d3ee"/>
+      <circle cx="8" cy="18" r="4.5" fill="#ff9f43"/>
+      <circle cx="18" cy="18" r="4.5" fill="#34d399"/>
+      <circle cx="28" cy="18" r="4.5" fill="#a78bfa"/>
+      <circle cx="8" cy="28" r="4.5" fill="#fbbf24"/>
+      <circle cx="18" cy="28" r="4.5" fill="#ec4899"/>
+      <circle cx="28" cy="28" r="4.5" fill="#60a5fa"/>
+    </svg>
     <div class="h-title">豆豆拼豆<small>BEAD STUDIO</small></div>
   </div>
   <div class="h-r">
@@ -1346,35 +1349,55 @@ function exportPNG(){
   if(!S.beadGrid){toast('请先上传图片');return;}
   const MAX=8000;let cs=40;
   if(Math.max(S.gridW,S.gridH)*cs>MAX)cs=Math.floor(MAX/Math.max(S.gridW,S.gridH));
-  const pd=28,lh=120;
-  const ec=document.createElement('canvas');ec.width=S.gridW*cs+pd*2;ec.height=S.gridH*cs+pd*2+lh;
-  const ctx=ec.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,ec.width,ec.height);
+  const pd=28, lp=18, lh=140;
+  const ec=document.createElement('canvas');
+  const gridX=pd+lp, gridY=pd+lp;
+  ec.width=gridX+S.gridW*cs+pd; ec.height=gridY+S.gridH*cs+lh;
+  const ctx=ec.getContext('2d');
+  // 白底
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,ec.width,ec.height);
+  // 网格底色
+  ctx.fillStyle='#f8f8f8';ctx.fillRect(gridX,gridY,S.gridW*cs,S.gridH*cs);
+  // 坐标编号
+  ctx.fillStyle='#555';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  for(let gx=0;gx<S.gridW;gx++) ctx.fillText(gx+1, gridX+gx*cs+cs/2, gridY-lp/2);
+  for(let gy=0;gy<S.gridH;gy++) ctx.fillText(gy+1, gridX-lp/2, gridY+gy*cs+cs/2);
+  // 珠子
   const palette=getPalette(S.brand);
   const WHITE=['#F1F1F1','#ECEDED','#FFFFFF','#EFEFEF','#fff','#FFF'];
-  ctx.textAlign='center';ctx.textBaseline='middle';
   for(let gy=0;gy<S.gridH;gy++)for(let gx=0;gx<S.gridW;gx++){
     const bi=S.beadGrid[gy][gx],bead=palette[bi];if(!bead)continue;
     const rgb=hexToRgb(bead.hex);if(!rgb)continue;
     if(S.showBeads){
-      const cx=pd+gx*cs+cs/2,cy=pd+gy*cs+cs/2,r=cs/2-Math.max(.4,cs*.04);
+      const cx=gridX+gx*cs+cs/2,cy=gridY+gy*cs+cs/2,r=cs/2-Math.max(.4,cs*.04);
       ctx.beginPath();ctx.arc(cx,cy+.6,r,0,Math.PI*2);ctx.fillStyle='rgba(0,0,0,.07)';ctx.fill();
       const g=ctx.createRadialGradient(cx-r*.35,cy-r*.35,r*.1,cx,cy,r);
       g.addColorStop(0,lighten(rgb,42));g.addColorStop(.55,bead.hex);g.addColorStop(1,darken(rgb,16));
       ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
       ctx.beginPath();ctx.arc(cx-r*.32,cy-r*.36,r*.2,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,.45)';ctx.fill();
     }else{
-      ctx.fillStyle=bead.hex;ctx.fillRect(pd+gx*cs,pd+gy*cs,cs,cs);
+      ctx.fillStyle=bead.hex;ctx.fillRect(gridX+gx*cs,gridY+gy*cs,cs,cs);
     }
     if(WHITE.includes(bead.hex)||(rgb.r+rgb.g+rgb.b)/3>238)continue;
-    // Plain flat text: no bold, no outline — auto-shrink to fit cell
     const dark=isDark(rgb);
     let fs=Math.max(8,Math.round(cs/2.3));
     ctx.font=`${fs}px Arial`;
     const maxW=cs*0.92,tm=ctx.measureText(bead.code);
     if(tm.width>maxW){fs=Math.max(7,Math.floor(fs*maxW/tm.width));ctx.font=`${fs}px Arial`;}
     ctx.fillStyle=dark?'#ffffff':'#000000';
-    ctx.fillText(bead.code,pd+gx*cs+cs/2,pd+gy*cs+cs/2+1);
+    ctx.fillText(bead.code,gridX+gx*cs+cs/2,gridY+gy*cs+cs/2+1);
   }
+  // 次级网格线（每 10 格）
+  ctx.strokeStyle='#888';ctx.lineWidth=1.5;
+  for(let gx=0;gx<=S.gridW;gx+=10){ctx.beginPath();ctx.moveTo(gridX+gx*cs,gridY);ctx.lineTo(gridX+gx*cs,gridY+S.gridH*cs);ctx.stroke();}
+  for(let gy=0;gy<=S.gridH;gy+=10){ctx.beginPath();ctx.moveTo(gridX,gridY+gy*cs);ctx.lineTo(gridX+S.gridW*cs,gridY+gy*cs);ctx.stroke();}
+  // 普通网格线
+  ctx.strokeStyle='#d0d0d0';ctx.lineWidth=0.5;
+  for(let gx=0;gx<=S.gridW;gx++){ctx.beginPath();ctx.moveTo(gridX+gx*cs,gridY);ctx.lineTo(gridX+gx*cs,gridY+S.gridH*cs);ctx.stroke();}
+  for(let gy=0;gy<=S.gridH;gy++){ctx.beginPath();ctx.moveTo(gridX,gridY+gy*cs);ctx.lineTo(gridX+S.gridW*cs,gridY+gy*cs);ctx.stroke();}
+  // 红色外边框
+  ctx.strokeStyle='#e53935';ctx.lineWidth=4;ctx.strokeRect(gridX-2,gridY-2,S.gridW*cs+4,S.gridH*cs+4);
+  // 底部图例
   const ly=ec.height-lh+18;
   ctx.fillStyle='#fafafa';ctx.fillRect(pd,ly,ec.width-pd*2,lh-26);ctx.strokeStyle='#e5e7eb';ctx.strokeRect(pd,ly,ec.width-pd*2,lh-26);
   ctx.textAlign='left';
@@ -1413,35 +1436,47 @@ function downloadCanvas(canvas,filename){
 function genShareImage(callback){
   const MAX=4000;let cs=26;
   if(Math.max(S.gridW,S.gridH)*cs>MAX)cs=Math.floor(MAX/Math.max(S.gridW,S.gridH));
-  const pd=18;
-  const ec=document.createElement('canvas');ec.width=S.gridW*cs+pd*2;ec.height=S.gridH*cs+pd*2;
-  const ctx=ec.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,ec.width,ec.height);
+  const pd=18, lp=18;
+  const gridX=pd+lp, gridY=pd+lp;
+  const ec=document.createElement('canvas');
+  ec.width=gridX+S.gridW*cs+pd; ec.height=gridY+S.gridH*cs+pd;
+  const ctx=ec.getContext('2d');
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,ec.width,ec.height);
+  ctx.fillStyle='#f8f8f8';ctx.fillRect(gridX,gridY,S.gridW*cs,S.gridH*cs);
+  ctx.fillStyle='#555';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  for(let gx=0;gx<S.gridW;gx++) ctx.fillText(gx+1, gridX+gx*cs+cs/2, gridY-lp/2);
+  for(let gy=0;gy<S.gridH;gy++) ctx.fillText(gy+1, gridX-lp/2, gridY+gy*cs+cs/2);
   const palette=getPalette(S.brand);
   const WHITE=['#F1F1F1','#ECEDED','#FFFFFF','#EFEFEF','#fff','#FFF'];
-  ctx.textAlign='center';ctx.textBaseline='middle';
   for(let gy=0;gy<S.gridH;gy++)for(let gx=0;gx<S.gridW;gx++){
     const bi=S.beadGrid[gy][gx],bead=palette[bi];if(!bead)continue;
     const rgb=hexToRgb(bead.hex);if(!rgb)continue;
     if(S.showBeads){
-      const cx=pd+gx*cs+cs/2,cy=pd+gy*cs+cs/2,r=cs/2-Math.max(.4,cs*.04);
+      const cx=gridX+gx*cs+cs/2,cy=gridY+gy*cs+cs/2,r=cs/2-Math.max(.4,cs*.04);
       ctx.beginPath();ctx.arc(cx,cy+.6,r,0,Math.PI*2);ctx.fillStyle='rgba(0,0,0,.07)';ctx.fill();
       const g=ctx.createRadialGradient(cx-r*.35,cy-r*.35,r*.1,cx,cy,r);
       g.addColorStop(0,lighten(rgb,42));g.addColorStop(.55,bead.hex);g.addColorStop(1,darken(rgb,16));
       ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
       ctx.beginPath();ctx.arc(cx-r*.32,cy-r*.36,r*.2,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,.45)';ctx.fill();
     }else{
-      ctx.fillStyle=bead.hex;ctx.fillRect(pd+gx*cs,pd+gy*cs,cs,cs);
+      ctx.fillStyle=bead.hex;ctx.fillRect(gridX+gx*cs,gridY+gy*cs,cs,cs);
     }
     if(WHITE.includes(bead.hex)||(rgb.r+rgb.g+rgb.b)/3>238)continue;
-    // Plain flat text: no bold, no outline — auto-shrink to fit cell
     const dark=isDark(rgb);
     let fs=Math.max(7,Math.round(cs/2.3));
     ctx.font=`${fs}px Arial`;
     const maxW=cs*0.92,tm=ctx.measureText(bead.code);
     if(tm.width>maxW){fs=Math.max(6,Math.floor(fs*maxW/tm.width));ctx.font=`${fs}px Arial`;}
     ctx.fillStyle=dark?'#ffffff':'#000000';
-    ctx.fillText(bead.code,pd+gx*cs+cs/2,pd+gy*cs+cs/2+1);
+    ctx.fillText(bead.code,gridX+gx*cs+cs/2,gridY+gy*cs+cs/2+1);
   }
+  ctx.strokeStyle='#888';ctx.lineWidth=1.5;
+  for(let gx=0;gx<=S.gridW;gx+=10){ctx.beginPath();ctx.moveTo(gridX+gx*cs,gridY);ctx.lineTo(gridX+gx*cs,gridY+S.gridH*cs);ctx.stroke();}
+  for(let gy=0;gy<=S.gridH;gy+=10){ctx.beginPath();ctx.moveTo(gridX,gridY+gy*cs);ctx.lineTo(gridX+S.gridW*cs,gridY+gy*cs);ctx.stroke();}
+  ctx.strokeStyle='#d0d0d0';ctx.lineWidth=0.5;
+  for(let gx=0;gx<=S.gridW;gx++){ctx.beginPath();ctx.moveTo(gridX+gx*cs,gridY);ctx.lineTo(gridX+gx*cs,gridY+S.gridH*cs);ctx.stroke();}
+  for(let gy=0;gy<=S.gridH;gy++){ctx.beginPath();ctx.moveTo(gridX,gridY+gy*cs);ctx.lineTo(gridX+S.gridW*cs,gridY+gy*cs);ctx.stroke();}
+  ctx.strokeStyle='#e53935';ctx.lineWidth=4;ctx.strokeRect(gridX-2,gridY-2,S.gridW*cs+4,S.gridH*cs+4);
   callback(ec);
 }
 
