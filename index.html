@@ -687,6 +687,13 @@ body.preview-mode .canvas-stage{padding-top:64px;overflow:auto;-webkit-overflow-
   <!-- SIZE PRESET -->
   <div class="preset-row" id="presetRow"></div>
 
+  <!-- DISPLAY TOGGLES -->
+  <div class="toggle-strip">
+    <div class="toggle-chip active" id="togGrid">网格线</div>
+    <div class="toggle-chip" id="togSymbols">色号</div>
+    <div class="toggle-chip" id="togBeads">圆珠</div>
+  </div>
+
   <!-- QUICK ACTIONS -->
   <div class="settings-title" style="padding:2px 2px">🛠 AI 工具</div>
   <div class="quick-strip">
@@ -732,14 +739,6 @@ body.preview-mode .canvas-stage{padding-top:64px;overflow:auto;-webkit-overflow-
   <!-- COLOR SCHEME -->
   <div class="settings-title" style="padding:0 2px">🎨 AI 配色风格</div>
   <div class="scheme-strip" id="schemeStrip"></div>
-
-  <!-- DISPLAY TOGGLES -->
-  <div class="settings-title" style="padding:0 2px">👁 显示选项</div>
-  <div class="toggle-strip">
-    <div class="toggle-chip active" id="togGrid">网格线</div>
-    <div class="toggle-chip active" id="togSymbols">色号</div>
-    <div class="toggle-chip" id="togBeads">圆珠</div>
-  </div>
 
   <!-- COLOR LIST -->
   <div class="color-section" id="colorSection">
@@ -891,7 +890,7 @@ const S={
   colorScheme:'',brand:'mard',ratioLocked:true,
   originalRatio:1,beadColors:[],beadGrid:null,zoom:1,
   highlightedColor:-1,imageLoaded:false,
-  showGrid:true,showSymbols:true,showBeads:false,
+  showGrid:true,showSymbols:false,showBeads:false,
   tool:null,editColorIdx:0,undoStack:[],undoIdx:-1,
   aiOptimized:false,bgRemoved:false,
 };
