@@ -938,8 +938,11 @@ function loadImage(file){
     img.onload=()=>{
       S.image=img;S.originalRatio=img.width/img.height;
       const c=document.createElement('canvas');c.width=img.width;c.height=img.height;
-      c.getContext('2d').drawImage(img,0,0);
-      S.imageData=c.getContext('2d').getImageData(0,0,img.width,img.height);
+      const lctx=c.getContext('2d');
+      // 透明 PNG 合成到白底：透明区域默认变白色，避免被当黑色匹配成黑珠
+      lctx.fillStyle='#ffffff';lctx.fillRect(0,0,c.width,c.height);
+      lctx.drawImage(img,0,0);
+      S.imageData=lctx.getImageData(0,0,img.width,img.height);
       // 图片插入后 AI 自动简化（去噪/对比度/饱和度），再经采样→匹配生成拼豆图
       S.processedData=aiSimplify(S.imageData);S.undoStack=[];S.undoIdx=-1;S.aiOptimized=true;
       if(S.ratioLocked){
