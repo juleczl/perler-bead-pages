@@ -940,7 +940,8 @@ function loadImage(file){
       const c=document.createElement('canvas');c.width=img.width;c.height=img.height;
       c.getContext('2d').drawImage(img,0,0);
       S.imageData=c.getContext('2d').getImageData(0,0,img.width,img.height);
-      S.processedData=null;S.undoStack=[];S.undoIdx=-1;
+      // 图片插入后 AI 自动简化（去噪/对比度/饱和度），再经采样→匹配生成拼豆图
+      S.processedData=aiSimplify(S.imageData);S.undoStack=[];S.undoIdx=-1;S.aiOptimized=true;
       if(S.ratioLocked){
         const m=100;
         // Always compute BOTH dimensions from the image to preserve aspect ratio
@@ -959,7 +960,8 @@ function loadImage(file){
       S.imageLoaded=true;
       D.uploadPreview.src=e.target.result;D.uploadCard.classList.add('has-image');
       D.canvasEmpty.style.display='none';D.beadCanvas.style.display='block';D.canvasSection.classList.add('has-grid');setPresetActive();
-      processImage();toast('已加载 · '+S.brand.toUpperCase()+' 配色');
+      $('#btnOptimize').classList.add('active');
+      processImage();toast('✨ AI 已自动简化 · 生成拼豆图');
     };
     img.src=e.target.result;
   };
@@ -978,6 +980,19 @@ function aiOptimize(imageData){
   for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const idx=(y*w+x)*4;for(let c=0;c<3;c++){const v=data[idx+c]*5-data[((y-1)*w+x)*4+c]-data[((y+1)*w+x)*4+c]-data[(y*w+(x-1))*4+c]-data[(y*w+(x+1))*4+c];sharp[idx+c]=clamp(v,0,255);}}
   for(let i=0;i<len;i+=4){const r=sharp[i],g=sharp[i+1],b=sharp[i+2];const gray=0.299*r+0.587*g+0.114*b;sharp[i]=clamp(gray+(r-gray)*1.2,0,255);sharp[i+1]=clamp(gray+(g-gray)*1.2,0,255);sharp[i+2]=clamp(gray+(b-gray)*1.2,0,255);}
   return new ImageData(sharp,w,h);
+}
+
+// AI 简化：让照片更适合转拼豆（自动预处理）。均值模糊去噪 → 对比度拉伸 → 饱和度提升
+function aiSimplify(imageData){
+  const src=imageData.data,w=imageData.width,h=imageData.height,len=src.length;
+  const blur=new Uint8ClampedArray(src);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=(y*w+x)*4;let r=0,g=0,b=0,n=0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const nx=x+dx,ny=y+dy;if(nx<0||nx>=w||ny<0||ny>=h)continue;const j=(ny*w+nx)*4;r+=src[j];g+=src[j+1];b+=src[j+2];n++;}blur[i]=r/n;blur[i+1]=g/n;blur[i+2]=b/n;blur[i+3]=src[i+3];}
+  let mn=[255,255,255],mx=[0,0,0];
+  for(let i=0;i<len;i+=4)for(let c=0;c<3;c++){const v=blur[i+c];if(v<mn[c])mn[c]=v;if(v>mx[c])mx[c]=v;}
+  const out=new Uint8ClampedArray(blur);
+  for(let i=0;i<len;i+=4)for(let c=0;c<3;c++){const rng=mx[c]-mn[c]||1;out[i+c]=((blur[i+c]-mn[c])/rng)*255;}
+  for(let i=0;i<len;i+=4){const r=out[i],g=out[i+1],b=out[i+2];const gray=0.299*r+0.587*g+0.114*b;out[i]=clamp(gray+(r-gray)*1.2,0,255);out[i+1]=clamp(gray+(g-gray)*1.2,0,255);out[i+2]=clamp(gray+(b-gray)*1.2,0,255);}
+  return new ImageData(out,w,h);
 }
 
 // =============================================
@@ -1567,11 +1582,19 @@ function bind(){
     if(!S.imageData){toast('请先上传图片');return;}
     setProcessing(true);
     setTimeout(()=>{
-      S.processedData=aiOptimize(S.imageData);
-      S.aiOptimized=true;
-      $('#btnOptimize').classList.add('active');
-      processImage();
-      toast('✨ AI 画质增强已应用');
+      if(S.aiOptimized){
+        // 已简化 → 恢复原始图片
+        S.processedData=null;S.aiOptimized=false;
+        $('#btnOptimize').classList.remove('active');
+        processImage();
+        toast('已恢复原始图片');
+      }else{
+        // 未简化 → 重新 AI 简化
+        S.processedData=aiSimplify(S.imageData);S.aiOptimized=true;
+        $('#btnOptimize').classList.add('active');
+        processImage();
+        toast('✨ AI 已自动简化图片');
+      }
     },100);
   });
   $('#btnBgRemove').addEventListener('click',()=>{
